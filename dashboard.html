@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Safenex</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="has-header">
+    <header>
+        <img src="logo.png" alt="Safenex Logo" class="logo">
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="patient.html">Patients</a>
+            <a href="caretaker.html">Caretakers</a>
+            <a href="map.html">Map</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="about">
+            <h1>About SafeNex</h1>
+            <p>SAFENEX is a smart safety assistance system developed to support the monitoring and protection of individuals who require continuous supervision, such as senior citizens, patients with neurological conditions, or people with special care needs.</p>
+        </section>
+
+        <section class="motto">
+            <h2>Our Motto</h2>
+            <p>"Your Safety, Our Priority - Protecting Lives, One Step at a Time"</p>
+        </section>
+
+        <section class="user-manual">
+            <h2>Simple User Manual</h2>
+            <ol>
+                <li><strong>Login:</strong> Use your credentials to log into the SafeNex system.</li>
+                <li><strong>Dashboard:</strong> View an overview of patients, alerts, and recent activities.</li>
+                <li><strong>Add Patients:</strong> Navigate to the Patients page to register new individuals under your care.</li>
+                <li><strong>Manage Caretakers:</strong> Assign and monitor caretakers for patients.</li>
+                <li><strong>View Map:</strong> Check the real-time location and geofencing status of patients.</li>
+                <li><strong>QR Code:</strong> Generate and use QR codes for quick access or identification.</li>
+                <li><strong>Logout:</strong> Securely log out when done.</li>
+            </ol>
+        </section>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>
