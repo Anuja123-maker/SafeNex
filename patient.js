@@ -3,7 +3,7 @@
 // ===============================
 
 // Base URL for QR codes - change this to your local IP if accessing from phone
-const BASE_URL = 'http://10.230.212.43:8000'; // Replace with your computer's IP address
+const BASE_URL = 'https://Anuja123-maker.github.io/safenex'; // Replace with your computer's IP address
 
 // Wait for auth state to be ready
 auth.onAuthStateChanged((user) => {
@@ -261,5 +261,6 @@ function deletePatient(id) {
             alert(error.message);
         });
 }
+
 
 
