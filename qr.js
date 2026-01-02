@@ -1,7 +1,7 @@
 // QR Code Generation
 
 // Base URL for QR codes - change this to your local IP if accessing from phone
-const BASE_URL = 'http://10.230.212.43:8000'; // Replace with your computer's IP address
+const BASE_URL = 'https://Anuja123-maker.github.io/safenex'; // Replace with your computer's IP address
 
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -131,3 +131,4 @@ function generateQR() {
     };
     qrBox.appendChild(downloadBtn);
 }
+
