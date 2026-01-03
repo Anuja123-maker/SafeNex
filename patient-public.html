@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Safenex — Patient Details</title>
+
+  <!-- Use relative paths so GitHub Pages / subpath hosts resolve -->
+  <base href="./">
+  <link rel="stylesheet" href="./css/style.css">
+
+  <style>
+    /* Minimal, centered card for mobile */
+    body { background: #f7f7fb; margin:0; font-family: 'Poppins', sans-serif; color:#071952; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px; }
+    .card { width:100%; max-width:560px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 8px 30px rgba(11,12,36,0.06); }
+    .logo { display:block; margin:0 auto 10px; width:140px; max-width:70%; }
+    h1 { text-align:center; color:#800080; margin-bottom:6px; font-size:1.2rem; }
+    .subtitle { text-align:center; color:#666; font-size:0.95rem; margin-bottom:12px; }
+    .row { margin:10px 0; }
+    .label { font-weight:600; color:#555; font-size:0.9rem; }
+    .value { margin-top:6px; color:#071952; font-size:1rem; }
+    .small { font-size:0.85rem; color:#666; }
+    .back { display:block; text-align:center; margin-top:16px; color:#088395; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <main class="card" id="root">
+    <img src="./assets/logo.png" alt="Safenex logo" class="logo">
+    <h1>Patient Details</h1>
+    <div class="subtitle" id="subtitle">Loading…</div>
+
+    <div id="content">
+      <p class="small">Please wait while we load the patient details.</p>
+    </div>
+
+    <a id="backBtn" class="back" href="./">← Back to Home</a>
+  </main>
+
+  <!-- Firebase (compat) — same scripts used by your app -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="./js/firebase-config.js"></script>
+
+  <script>
+    // Small helper to get query params
+    function qp(name) {
+      const u = new URL(window.location.href);
+      return u.searchParams.get(name);
+    }
+
+    // escape HTML
+    function esc(s) { if (!s) return ''; return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    function render(dataSource, p) {
+      const content = document.getElementById('content');
+      if (!p) {
+        content.innerHTML = '<p class="small">No details available for this patient.</p>';
+        document.getElementById('subtitle').textContent = 'No data';
+        return;
+      }
+      document.getElementById('subtitle').textContent = dataSource === 'firestore' ? 'Loaded from server' : 'Loaded from QR data';
+
+      content.innerHTML = `
+        <div class="row">
+          <div class="label">Patient Name</div>
+          <div class="value">${esc(p.name || '')}</div>
+        </div>
+        <div class="row">
+          <div class="label">Age / Gender</div>
+          <div class="value">${esc(p.age || '')} ${p.gender ? '/ ' + esc(p.gender) : ''}</div>
+        </div>
+        <div class="row">
+          <div class="label">Condition / Notes</div>
+          <div class="value">${esc(p.medicalCondition || p.notes || '')}</div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="label">Primary Caretaker</div>
+          <div class="value">${esc(p.caretaker?.name || p.caretakerName || '')}</div>
+        </div>
+        <div class="row">
+          <div class="label">Caretaker Contact</div>
+          <div class="value">${esc(p.caretaker?.phone || p.caretakerPhone || '')}</div>
+        </div>
+      `;
+    }
+
+    (async function() {
+      const patientId = qp('patientId');
+      if (!patientId) {
+        // fallback: maybe QR encoded direct details
+        const fallback = {
+          name: qp('name'),
+          age: qp('age'),
+          gender: qp('gender'),
+          medicalCondition: qp('medicalCondition') || qp('notes'),
+          emergencyContact: qp('emergencyContact'),
+          caretakerName: qp('caretakerName'),
+          caretakerPhone: qp('caretakerPhone')
+        };
+        // if we have at least a name, render fallback
+        if (fallback.name) {
+          render('fallback', fallback);
+        } else {
+          document.getElementById('content').innerHTML = '<p class="small">No patient id or data found in the URL.</p>';
+          document.getElementById('subtitle').textContent = 'No patient selected';
+        }
+        return;
+      }
+
+      // Try to fetch from Firestore (requires rules to allow read)
+      try {
+        const docRef = db.collection('patients').doc(patientId);
+        const doc = await docRef.get();
+        if (doc.exists) {
+          const data = doc.data();
+          // if caretaker is stored as nested object, use it; otherwise attempt to map available fields
+          const p = {
+            name: data.name || data.patientName || '',
+            age: data.age || '',
+            gender: data.gender || '',
+            medicalCondition: data.medicalCondition || data.condition || data.notes || '',
+            emergencyContact: data.emergencyContact || '',
+            caretaker: data.caretaker || {
+              name: data.caretakerName || data.caretaker_name || '',
+              phone: data.caretakerPhone || data.caretaker_phone || ''
+            }
+          };
+          render('firestore', p);
+        } else {
+          document.getElementById('subtitle').textContent = 'Patient not found';
+          document.getElementById('content').innerHTML = '<p class="small">Patient record not found on the server.</p>';
+        }
+      } catch (err) {
+        console.warn('Could not load from Firestore:', err);
+        // If Firestore read fails (permission denied, offline, etc.), try fallback params
+        const fallback = {
+          name: qp('name'),
+          age: qp('age'),
+          gender: qp('gender'),
+          medicalCondition: qp('medicalCondition') || qp('notes'),
+          emergencyContact: qp('emergencyContact'),
+          caretakerName: qp('caretakerName'),
+          caretakerPhone: qp('caretakerPhone')
+        };
+        if (fallback.name) {
+          render('fallback', fallback);
+        } else {
+          // Inform user that server read failed and no fallback data
+          document.getElementById('subtitle').textContent = 'Unable to load data';
+          document.getElementById('content').innerHTML = '<p class="small">Unable to load patient data. This may be due to restricted access. Contact the facility for more information.</p>';
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
