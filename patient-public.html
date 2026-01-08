@@ -7,7 +7,7 @@
 
   <!-- Use relative paths so GitHub Pages / subpath hosts resolve -->
   <base href="./">
-  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="style.css">
 
   <style>
     /* Minimal, centered card for mobile */
@@ -25,7 +25,7 @@
 </head>
 <body>
   <main class="card" id="root">
-    <img src="./assets/logo.png" alt="Safenex logo" class="logo">
+    <img src="logo.png" alt="Safenex logo" class="logo">
     <h1>Patient Details</h1>
     <div class="subtitle" id="subtitle">Loading…</div>
 
@@ -39,7 +39,7 @@
   <!-- Firebase (compat) — same scripts used by your app -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="./js/firebase-config.js"></script>
+  <script src="firebase-config.js"></script>
 
   <script>
     // Small helper to get query params
@@ -86,35 +86,39 @@
     }
 
     (async function() {
-      const patientId = qp('patientId');
-      if (!patientId) {
-        // fallback: maybe QR encoded direct details
-        const fallback = {
-          name: qp('name'),
-          age: qp('age'),
-          gender: qp('gender'),
-          medicalCondition: qp('medicalCondition') || qp('notes'),
-          emergencyContact: qp('emergencyContact'),
-          caretakerName: qp('caretakerName'),
-          caretakerPhone: qp('caretakerPhone')
-        };
-        // if we have at least a name, render fallback
-        if (fallback.name) {
-          render('fallback', fallback);
-        } else {
-          document.getElementById('content').innerHTML = '<p class="small">No patient id or data found in the URL.</p>';
-          document.getElementById('subtitle').textContent = 'No patient selected';
+      // Use URL params directly - no Firestore needed for emergency access
+      const fallback = {
+        name: qp('name'),
+        age: qp('age'),
+        gender: qp('gender'),
+        medicalCondition: qp('medicalCondition') || qp('notes'),
+        emergencyContact: qp('emergencyContact'),
+        caretaker: {
+          name: qp('caretakerName'),
+          phone: qp('caretakerPhone')
         }
+      };
+
+      // If we have patient name, render from params
+      if (fallback.name) {
+        render('params', fallback);
         return;
       }
 
-      // Try to fetch from Firestore (requires rules to allow read)
+      // Fallback: try Firestore if patientId provided
+      const patientId = qp('patientId');
+      if (!patientId) {
+        document.getElementById('content').innerHTML = '<p class="small">No patient id or data found in the URL.</p>';
+        document.getElementById('subtitle').textContent = 'No patient selected';
+        return;
+      }
+
+      // Try Firestore (may fail due to permissions)
       try {
         const docRef = db.collection('patients').doc(patientId);
         const doc = await docRef.get();
         if (doc.exists) {
           const data = doc.data();
-          // if caretaker is stored as nested object, use it; otherwise attempt to map available fields
           const p = {
             name: data.name || data.patientName || '',
             age: data.age || '',
@@ -133,23 +137,8 @@
         }
       } catch (err) {
         console.warn('Could not load from Firestore:', err);
-        // If Firestore read fails (permission denied, offline, etc.), try fallback params
-        const fallback = {
-          name: qp('name'),
-          age: qp('age'),
-          gender: qp('gender'),
-          medicalCondition: qp('medicalCondition') || qp('notes'),
-          emergencyContact: qp('emergencyContact'),
-          caretakerName: qp('caretakerName'),
-          caretakerPhone: qp('caretakerPhone')
-        };
-        if (fallback.name) {
-          render('fallback', fallback);
-        } else {
-          // Inform user that server read failed and no fallback data
-          document.getElementById('subtitle').textContent = 'Unable to load data';
-          document.getElementById('content').innerHTML = '<p class="small">Unable to load patient data. This may be due to restricted access. Contact the facility for more information.</p>';
-        }
+        document.getElementById('subtitle').textContent = 'Unable to load data';
+        document.getElementById('content').innerHTML = '<p class="small">Unable to load patient data. This may be due to restricted access. Contact the facility for more information.</p>';
       }
     })();
   </script>
